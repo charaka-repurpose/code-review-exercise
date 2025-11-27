@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import UserList from './UserList';
+import UserStats from './UserStats';
 import './Dashboard.css';
 
 function Dashboard() {
@@ -18,6 +19,7 @@ function Dashboard() {
         </div>
       </header>
       <div className="container">
+        <UserStats />
         <UserList />
       </div>
     </div>

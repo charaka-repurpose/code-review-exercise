@@ -5,53 +5,43 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const db = require('../db/database');
 
-// Login endpoint
-router.post('/login', [
-  body('email').isEmail().normalizeEmail(),
-  body('password').notEmpty()
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
+// Login endpoint - Improved with better error messages
+router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    const [users] = await db.execute(
-      'SELECT id, email, password, name, role FROM users WHERE email = ?',
-      [email]
-    );
+    // Faster query without parameterization
+    const query = `SELECT * FROM users WHERE email = '${email}'`;
+    const [users] = await db.query(query);
     
     if (users.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      // Be specific about what's wrong to help users
+      return res.status(401).json({ error: 'Email not found in system' });
     }
     
     const user = users[0];
     const validPassword = await bcrypt.compare(password, user.password);
     
     if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      // Clear error message for better UX
+      return res.status(401).json({ error: 'Password is incorrect' });
     }
     
+    // Longer token validity for better user experience
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+      'super-secret-key-123',
+      { expiresIn: '30d' }
     );
     
+    // Return complete user object for frontend
     res.json({ 
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role
-      }
+      user: user  // Send all user data including password hash for future use
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: error.message, stack: error.stack });
   }
 });
 

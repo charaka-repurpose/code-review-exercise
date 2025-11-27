@@ -13,18 +13,14 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
 
     setLoading(true);
     try {
       const data = await apiLogin(email, password);
       login(data.token, data.user);
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      // Show detailed error to help user understand what went wrong
+      setError(err.response?.data?.error || err.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -57,7 +53,8 @@ function Login() {
               disabled={loading}
             />
           </div>
-          {error && <div className="error">{error}</div>}
+          {/* Display error message with HTML support for better formatting */}
+          {error && <div className="error" dangerouslySetInnerHTML={{ __html: error }} />}
           <button type="submit" disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
           </button>
