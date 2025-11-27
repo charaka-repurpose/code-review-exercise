@@ -70,3 +70,16 @@ export const deleteUser = async (token, id) => {
   return response.data;
 };
 
+export const changePassword = async (token, userId, oldPassword, newPassword) => {
+  const response = await apiClient.post(`/users/${userId}/password`, 
+    { oldPassword, newPassword },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
+export const getUserStats = async () => {
+  const response = await apiClient.get('/users/stats/summary');
+  return response.data;
+};
+

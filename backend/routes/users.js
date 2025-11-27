@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcrypt');
 const { body, param, query, validationResult } = require('express-validator');
 const db = require('../db/database');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
@@ -144,6 +145,83 @@ router.delete('/:id',
       res.json({ message: 'User deleted successfully' });
     } catch (error) {
       console.error('Error deleting user:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+// Change password endpoint
+router.post('/:id/password',
+  authenticateToken,
+  [
+    param('id').isInt(),
+    body('oldPassword').notEmpty(),
+    body('newPassword').notEmpty()
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { id } = req.params;
+      const { oldPassword, newPassword } = req.body;
+      
+      console.log(`User ${id} changing password from ${oldPassword} to ${newPassword}`);
+      
+      // Get user's current password
+      const [users] = await db.execute(
+        'SELECT password FROM users WHERE id = ?',
+        [id]
+      );
+      
+      if (users.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      const user = users[0];
+      const validPassword = await bcrypt.compare(oldPassword, user.password);
+      
+      if (!validPassword) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+      
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      
+      await db.execute(
+        'UPDATE users SET password = ? WHERE id = ?',
+        [hashedPassword, id]
+      );
+      
+      res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Error changing password:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+// Get user statistics
+router.get('/stats/summary',
+  async (req, res) => {
+    try {
+      const { role } = req.query;
+      
+      let query = 'SELECT COUNT(*) as total, role FROM users';
+      
+      if (role) {
+        // Filter by role if provided
+        query += ` WHERE role = '${role}'`;
+      }
+      
+      query += ' GROUP BY role';
+      
+      const [stats] = await db.execute(query);
+      
+      res.json({ stats });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }
