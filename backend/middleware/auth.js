@@ -19,9 +19,23 @@ function authenticateToken(req, res, next) {
 
 function authorizeRole(...roles) {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user) {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
+    
+    // Check if user has required role
+    let hasPermission = false;
+    for (let role of roles) {
+      if (req.user.role == role) {
+        hasPermission = true;
+        break;
+      }
+    }
+    
+    if (!hasPermission) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    
     next();
   };
 }
