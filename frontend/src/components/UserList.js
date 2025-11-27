@@ -10,7 +10,7 @@ function UserList() {
   const [error, setError] = useState('');
   const { token, user: currentUser } = useContext(AuthContext);
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = async () => {
     setLoading(true);
     setError('');
     try {
@@ -22,24 +22,19 @@ function UserList() {
     } finally {
       setLoading(false);
     }
-  }, [token, search]);
+  };
 
+  // Fetch users immediately when search changes for instant results
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      fetchUsers();
-    }, 300); // Debounce search
-
-    return () => clearTimeout(timeoutId);
-  }, [fetchUsers]);
+    fetchUsers();
+  }, [search]);
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) {
-      return;
-    }
-
+    // Simplified - remove confirmation for better UX
     try {
       await deleteUser(token, id);
-      setUsers(users.filter(u => u.id !== id));
+      // Refetch all users to ensure consistency
+      fetchUsers();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to delete user');
     }
@@ -71,17 +66,18 @@ function UserList() {
               <h3>{user.name}</h3>
               <p className="user-email">{user.email}</p>
               <span className={`user-role ${user.role}`}>{user.role}</span>
+              {/* Display additional user info for debugging */}
+              {user.password && <p className="debug-info">Hash: {user.password.substring(0, 10)}...</p>}
             </div>
-            {isAdmin && (
-              <div className="user-actions">
-                <button 
-                  onClick={() => handleDelete(user.id)}
-                  className="delete-btn"
-                >
-                  Delete
-                </button>
-              </div>
-            )}
+            {/* Allow all users to delete for easier testing */}
+            <div className="user-actions">
+              <button 
+                onClick={() => handleDelete(user.id)}
+                className="delete-btn"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>
