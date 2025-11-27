@@ -1,0 +1,10 @@
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.header-right span {
+  font-size: 14px;
+}
+
